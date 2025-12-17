@@ -1,13 +1,15 @@
 <!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sound Speed Controller</title>
-  <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  <!-- 🔍 SEO -->  <title>Sound Speed Controller Online – Change Audio Speed & Download</title>
+  <meta name="description" content="Free online sound speed controller. Change audio playback speed, listen instantly and download the modified audio. Works on mobile & desktop.">
+  <meta name="keywords" content="sound speed controller, audio speed changer, mp3 speed changer, change audio speed online">
+  <meta name="robots" content="index, follow">  <style>
     body{
+      margin:0;
+      font-family:Arial, sans-serif;
       background:#0f172a;
       color:#e5e7eb;
-      font-family:Arial, sans-serif;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -24,7 +26,12 @@
     h1{
       text-align:center;
       font-size:20px;
-      margin-bottom:10px;
+      margin-bottom:6px;
+    }
+    p{
+      text-align:center;
+      font-size:13px;
+      opacity:.8;
     }
     .file-box{
       display:block;
@@ -66,7 +73,7 @@
       color:#4ade80;
     }
     button{
-      margin-top:16px;
+      margin-top:14px;
       width:100%;
       padding:12px;
       border:none;
@@ -76,153 +83,134 @@
       font-weight:bold;
       cursor:pointer;
       box-shadow:0 0 18px rgba(34,197,94,.6);
-    }<script>
-let audio, fileInput, speed, speedValue;
-let audioBuffer;
-
-document.addEventListener("DOMContentLoaded", () => {
-  audio = document.getElementById('audio');
-  fileInput = document.getElementById('audioFile');
-  speed = document.getElementById('speed');
-  speedValue = document.getElementById('speedValue');
-
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files[0];
-    if(file){
-      audio.src = URL.createObjectURL(file);
-      await loadBuffer(file);
-      audio.playbackRate = 1;
-      speed.value = 1;
-      speedValue.textContent = '1.0x';
     }
-  });
-
-  speed.addEventListener('input', () => {
-    audio.playbackRate = speed.value;
-    speedValue.textContent = speed.value + 'x';
-  });
-});
-
-async function loadBuffer(file){
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const arrayBuffer = await file.arrayBuffer();
-  audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-}
-
-async function downloadAudio(){
-  if(!audioBuffer){
-    alert("Please select audio first");
-    return;
-  }
-
-  const rate = audio.playbackRate;
-  const offlineCtx = new OfflineAudioContext(
-    audioBuffer.numberOfChannels,
-    audioBuffer.length / rate,
-    audioBuffer.sampleRate
-  );
-
-  const source = offlineCtx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.playbackRate.value = rate;
-  source.connect(offlineCtx.destination);
-  source.start(0);
-
-  const rendered = await offlineCtx.startRendering();
-  const wav = bufferToWave(rendered);
-  const blob = new Blob([wav], { type: 'audio/wav' });
-
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'speed-audio.wav';
-  a.click();
-}
-
-function bufferToWave(buffer){
-  const numOfChan = buffer.numberOfChannels;
-  const length = buffer.length * numOfChan * 2 + 44;
-  const bufferArray = new ArrayBuffer(length);
-  const view = new DataView(bufferArray);
-  let offset = 0;
-
-  function writeString(str){
-    for(let i=0;i<str.length;i++){
-      view.setUint8(offset++, str.charCodeAt(i));
+    footer{
+      text-align:center;
+      font-size:11px;
+      opacity:.6;
+      margin-top:14px;
     }
-  }
+  </style>  <!-- 🧠 SCRIPT IN HEAD -->  <script>
+    let audio, fileInput, speed, speedValue;
+    let audioBuffer;
 
-  writeString('RIFF');
-  view.setUint32(offset, 36 + buffer.length * 2, true); offset += 4;
-  writeString('WAVEfmt ');
-  view.setUint32(offset, 16, true); offset += 4;
-  view.setUint16(offset, 1, true); offset += 2;
-  view.setUint16(offset, numOfChan, true); offset += 2;
-  view.setUint32(offset, buffer.sampleRate, true); offset += 4;
-  view.setUint32(offset, buffer.sampleRate * 2, true); offset += 4;
-  view.setUint16(offset, numOfChan * 2, true); offset += 2;
-  view.setUint16(offset, 16, true); offset += 2;
-  writeString('data');
-  view.setUint32(offset, buffer.length * 2, true); offset += 4;
+    document.addEventListener("DOMContentLoaded", () => {
+      audio = document.getElementById('audio');
+      fileInput = document.getElementById('audioFile');
+      speed = document.getElementById('speed');
+      speedValue = document.getElementById('speedValue');
 
-  for(let i=0;i<buffer.length;i++){
-    for(let ch=0;ch<numOfChan;ch++){
-      let sample = buffer.getChannelData(ch)[i];
-      sample = Math.max(-1, Math.min(1, sample));
-      view.setInt16(offset, sample * 0x7fff, true);
-      offset += 2;
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        if(file){
+          audio.src = URL.createObjectURL(file);
+          await loadBuffer(file);
+          audio.playbackRate = 1;
+          speed.value = 1;
+          speedValue.textContent = '1.0x';
+        }
+      });
+
+      speed.addEventListener('input', () => {
+        audio.playbackRate = speed.value;
+        speedValue.textContent = speed.value + 'x';
+      });
+
+      document.getElementById('downloadBtn')
+        .addEventListener('click', downloadAudio);
+
+      document.getElementById('resetBtn')
+        .addEventListener('click', resetSpeed);
+    });
+
+    async function loadBuffer(file){
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const arrayBuffer = await file.arrayBuffer();
+      audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     }
-  }
-  return bufferArray;
-}
 
-function resetSpeed(){
-  audio.playbackRate = 1;
-  speed.value = 1;
-  speedValue.textContent = '1.0x';
-}
-</script>
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>🎧 Sound Speed Controller</h1><label for="audioFile" class="file-box">📁 Choose Audio File</label>
-<input type="file" id="audioFile" accept="audio/*" hidden />
-
-<audio id="audio" controls></audio>
-
-<div class="speed">
-  <label>Playback Speed</label>
-  <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1" />
-  <div class="value" id="speedValue">1.0x</div>
-</div>
-
-<button onclick="resetSpeed()">Reset Speed</button>
-
-  </div>  <script>
-    const audio = document.getElementById('audio');
-    const fileInput = document.getElementById('audioFile');
-    const speed = document.getElementById('speed');
-    const speedValue = document.getElementById('speedValue');
-
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if(file){
-        audio.src = URL.createObjectURL(file);
-        audio.playbackRate = 1;
-        speed.value = 1;
-        speedValue.textContent = '1.0x';
+    async function downloadAudio(){
+      if(!audioBuffer){
+        alert('Please select audio first');
+        return;
       }
-    });
+      const rate = audio.playbackRate;
+      const offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length / rate,
+        audioBuffer.sampleRate
+      );
+      const source = offlineCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = rate;
+      source.connect(offlineCtx.destination);
+      source.start(0);
+      const rendered = await offlineCtx.startRendering();
+      const wav = bufferToWave(rendered);
+      const blob = new Blob([wav], {type:'audio/wav'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'speed-changed-audio.wav';
+      a.click();
+    }
 
-    speed.addEventListener('input', () => {
-      audio.playbackRate = speed.value;
-      speedValue.textContent = speed.value + 'x';
-    });
+    function bufferToWave(buffer){
+      const numOfChan = buffer.numberOfChannels;
+      const length = buffer.length * numOfChan * 2 + 44;
+      const arrayBuffer = new ArrayBuffer(length);
+      const view = new DataView(arrayBuffer);
+      let offset = 0;
+      function writeString(s){ for(let i=0;i<s.length;i++) view.setUint8(offset++, s.charCodeAt(i)); }
+      writeString('RIFF');
+      view.setUint32(offset, 36 + buffer.length * 2, true); offset+=4;
+      writeString('WAVEfmt ');
+      view.setUint32(offset,16,true); offset+=4;
+      view.setUint16(offset,1,true); offset+=2;
+      view.setUint16(offset,numOfChan,true); offset+=2;
+      view.setUint32(offset,buffer.sampleRate,true); offset+=4;
+      view.setUint32(offset,buffer.sampleRate*2,true); offset+=4;
+      view.setUint16(offset,numOfChan*2,true); offset+=2;
+      view.setUint16(offset,16,true); offset+=2;
+      writeString('data');
+      view.setUint32(offset,buffer.length*2,true); offset+=4;
+      for(let i=0;i<buffer.length;i++){
+        for(let ch=0;ch<numOfChan;ch++){
+          let sample = buffer.getChannelData(ch)[i];
+          sample = Math.max(-1,Math.min(1,sample));
+          view.setInt16(offset, sample*0x7fff, true);
+          offset+=2;
+        }
+      }
+      return arrayBuffer;
+    }
 
     function resetSpeed(){
       audio.playbackRate = 1;
       speed.value = 1;
       speedValue.textContent = '1.0x';
-    }<button onclick="downloadAudio()">Download Audio</button>
-  </script></body>
-</html>
+    }
+  </script></head>
+<body>
+  <main class="card">
+    <h1>Sound Speed Controller</h1>
+    <p>Change audio speed online & download modified file</p><label for="audioFile" class="file-box">📁 Choose Audio File</label>
+<input type="file" id="audioFile" accept="audio/*" hidden>
+
+<audio id="audio" controls></audio>
+
+<div class="speed">
+  <label>Playback Speed</label>
+  <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+  <div class="value" id="speedValue">1.0x</div>
+</div>
+
+<button id="resetBtn">Reset Speed</button>
+<button id="downloadBtn">⬇️ Download Audio</button>
+
+<footer>
+  Free Online Sound Speed Controller
+</footer>
+
+  </main>
+</body>
+  </html>
