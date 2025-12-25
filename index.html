@@ -1,141 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta name="google-adsense-account" content="ca-pub-3285941469341982">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3285941469341982"
-     crossorigin="anonymous"></script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Editor – Speed | Pitch | Echo</title>
 
-  <!-- 🔍 SEO -->
-  <title>Sound Speed Controller Online – Change Audio Speed & Download</title>
-  <meta name="description" content="Free online sound speed controller. Change audio playback speed, listen instantly and download the modified audio. Works on mobile & desktop.">
-  <meta name="keywords" content="sound speed controller, audio speed changer, mp3 speed changer, change audio speed online">
-  <meta name="robots" content="index, follow">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3285941469341982"
+crossorigin="anonymous"></script>
 
-  <style>
-    body{
-      margin:0;
-      font-family:Arial, sans-serif;
-      background:#0f172a;
-      color:#e5e7eb;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      min-height:100vh;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.card{
+  background:#020617;
+  padding:22px;
+  border-radius:16px;
+  width:100%;
+  max-width:420px;
+  box-shadow:0 0 30px #22c55e80;
+}
+.logo{
+  text-align:center;
+  font-size:26px;
+  font-weight:bold;
+  color:#22c55e;
+}
+.upload-box{
+  display:block;
+  text-align:center;
+  padding:26px;
+  margin:16px 0;
+  border-radius:16px;
+  border:2px dashed #22c55e;
+  background:#022c22;
+  color:#4ade80;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 25px #22c55e80;
+}
+audio{width:100%;margin-top:10px}
+label{margin-top:10px;display:block}
+input[type=range]{width:100%;accent-color:#22c55e}
 
-    .card{
-      background:#020617;
-      padding:22px;
-      border-radius:16px;
-      width:100%;
-      max-width:420px;
-      box-shadow:0 0 40px rgba(34,197,94,.35);
-    }
+button{
+  margin-top:10px;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  font-weight:bold;
+  cursor:pointer;
+}
 
-    /* LOGO */
-    .logo{
-      text-align:center;
-      font-size:28px;
-      font-weight:900;
-      letter-spacing:2px;
-      margin-bottom:10px;
-      color:#22c55e;
-      text-shadow:0 0 15px rgba(34,197,94,0.9);
-    }
-    .logo span{ color:#4ade80; }
+.preset{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+.preset button{
+  flex:1;
+  background:#065f46;
+  color:#a7f3d0;
+}
+</style>
+</head>
 
-    h1{
-      text-align:center;
-      font-size:20px;
-      margin-bottom:6px;
-    }
-    p{
-      text-align:center;
-      font-size:13px;
-      opacity:.8;
-    }
+<body>
+<div class="card">
 
-    .file-box{
-      display:block;
-      text-align:center;
-      padding:20px;
-      margin:16px 0;
-      border-radius:14px;
-      border:2px dashed #22c55e;
-      background:rgba(34,197,94,0.08);
-      color:#4ade80;
-      font-weight:bold;
-      cursor:pointer;
-      transition:.3s;
-    }
-    .file-box:hover{
-      box-shadow:0 0 25px rgba(34,197,94,.7);
-      transform:scale(1.02);
-    }
+<div class="logo">DMZONE 777</div>
 
-    audio{ width:100%; margin-top:10px; }
+<label class="upload-box" for="file">🎵 Choose Audio File</label>
+<input type="file" id="file" hidden>
 
-    .speed{ margin-top:16px; }
-    .speed label{ display:block; margin-bottom:6px; text-align:center; }
+<audio id="audio" controls></audio>
 
-    input[type=range]{ width:100%; accent-color:#22c55e; }
+<label>Speed</label>
+<input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
 
-    .value{
-      text-align:center;
-      margin-top:6px;
-      font-weight:bold;
-      color:#4ade80;
-    }
+<label>Pitch</label>
+<input type="range" id="pitch" min="-12" max="12" step="1" value="0">
 
-    button{
-      margin-top:14px;
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:12px;
-      background:linear-gradient(90deg,#22c55e,#4ade80,#22c55e);
-      color:#052e16;
-      font-weight:bold;
-      cursor:pointer;
-      box-shadow:0 0 18px rgba(34,197,94,.6);
-    }
+<label>Echo</label>
+<input type="range" id="echo" min="0" max="1" step="0.1" value="0">
 
-    footer{
-      text-align:center;
-      font-size:11px;
-      opacity:.6;
-      margin-top:14px;
-    }
+<div class="preset">
+  <button onclick="presetSlow()">Slow</button>
+  <button onclick="presetDJ()">DJ</button>
+  <button onclick="presetFast()">Fast</button>
+</div>
 
-    /* FAQ */
-    .faq{ margin-top:20px; font-size:13px; }
-    .faq-item{
-      margin-top:12px;
-      padding:12px;
-      background:#020617;
-      border-radius:10px;
-      box-shadow:0 0 15px rgba(34,197,94,.15);
-    }
-    .faq-item h3{
-      margin:0 0 6px;
-      font-size:14px;
-      color:#4ade80;
-    }
-    .faq-item p{ margin:0; opacity:.85; }
-  </style>
+<button onclick="downloadAudio()">⬇ Download Audio</button>
+<button onclick="resetAll()">Reset</button>
 
-  <!-- SCRIPT -->
-  <script>
-    let audio, fileInput, speed, speedValue;
-    let audioBuffer;
+</div>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      audio = document.getElementById('audio');
-      fileInput = document.getElementById('audioFile');
-      speed = document.getElementById('speed');
-      speedValue = document.getElementById('speedValue');
+<script>
+let audio = document.getElementById("audio");
+let file = document.getElementById("file");
+let ctx, source, delay;
 
-      fileInput.addEventListener('change', async () => {
-        const file = fileInput.files[0];
-        if(file){
+file.onchange = () => {
+  audio.src = URL.createObjectURL(file.files[0]);
+  if(!ctx){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    source = ctx.createMediaElementSource(audio);
+    delay = ctx.createDelay();
+    source.connect(delay);
+    delay.connect(ctx.destination);
+  }
+};
+
+speed.oninput = e => audio.playbackRate = e.target.value;
+pitch.oninput = e => audio.playbackRate = Math.pow(2, e.target.value/12);
+echo.oninput = e => delay.delayTime.value = e.target.value;
+
+function presetSlow(){
+  speed.value=0.8; pitch.value=-2; echo.value=0.2;
+  speed.oninput(); pitch.oninput(); echo.oninput();
+}
+function presetDJ(){
+  speed.value=1.2; pitch.value=3; echo.value=0.4;
+  speed.oninput(); pitch.oninput(); echo.oninput();
+}
+function presetFast(){
+  speed.value=1.5; pitch.value=4; echo.value=0;
+  speed.oninput(); pitch.oninput(); echo.oninput();
+}
+
+function resetAll(){
+  speed.value=1; pitch.value=0; echo.value=0;
+  speed.oninput(); pitch.oninput(); echo.oninput();
+}
+
+async function downloadAudio(){
+  const ctx2 = new AudioContext();
+  const res = await fetch(audio.src);
+  const buf = await res.arrayBuffer();
+  const audioBuf = await ctx2.decodeAudioData(buf);
+
+  const offline = new OfflineAudioContext(
+    audioBuf.numberOfChannels,
+    audioBuf.length,
+    audioBuf.sampleRate
+  );
+
+  const src = offline.createBufferSource();
+  src.buffer = audioBuf;
+  src.playbackRate.value = audio.playbackRate;
+
+  const del = offline.createDelay();
+  del.delayTime.value = echo.value;
+
+  src.connect(del);
+  del.connect(offline.destination);
+  src.start();
+
+  const rendered = await offline.startRendering();
+  const blob = new Blob([bufferToWave(rendered)], {type:"audio/wav"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edited-audio.wav";
+  a.click();
+}
+
+function bufferToWave(buffer){
+  const length = buffer.length * 2 + 44;
+  const array = new ArrayBuffer(length);
+  const view = new DataView(array);
+  let offset = 0;
+
+  const write = s => { for(let i=0;i<s.length;i++) view.setUint8(offset++,s.charCodeAt(i)); }
+
+  write("RIFF"); view.setUint32(offset,36+buffer.length*2,true); offset+=4;
+  write("WAVEfmt "); view.setUint32(offset,16,true); offset+=4;
+  view.setUint16(offset,1,true); offset+=2;
+  view.setUint16(offset,1,true); offset+=2;
+  view.setUint32(offset,buffer.sampleRate,true); offset+=4;
+  view.setUint32(offset,buffer.sampleRate*2,true); offset+=4;
+  view.setUint16(offset,2,true); offset+=2;
+  view.setUint16(offset,16,true); offset+=2;
+  write("data"); view.setUint32(offset,buffer.length*2,true); offset+=4;
+
+  for(let i=0;i<buffer.length;i++){
+    view.setInt16(offset, buffer.getChannelData(0)[i]*0x7fff, true);
+    offset+=2;
+  }
+  return array;
+}
+</script>
+
+</body>
+</html>
