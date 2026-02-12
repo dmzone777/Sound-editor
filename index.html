@@ -15,7 +15,6 @@ body{
   height:100vh;
 }
 
-/* Header */
 header{
   background:#075e54;
   color:white;
@@ -25,7 +24,6 @@ header{
   font-weight:bold;
 }
 
-/* Setup Box */
 .setup-box{
   padding:20px;
   display:flex;
@@ -54,14 +52,12 @@ input{
   border-radius:6px;
 }
 
-/* Chat Area */
 #chatContainer{
   display:flex;
   flex-direction:column;
   flex:1;
 }
 
-/* Messages */
 #chat{
   flex:1;
   overflow-y:auto;
@@ -74,6 +70,7 @@ input{
   margin:6px 0;
   border-radius:8px;
   background:white;
+  position:relative;
 }
 
 .me{
@@ -81,7 +78,16 @@ input{
   margin-left:auto;
 }
 
-/* Message Box */
+.delete-btn{
+  background:red;
+  color:white;
+  border:none;
+  padding:3px 6px;
+  font-size:10px;
+  border-radius:4px;
+  margin-top:5px;
+}
+
 .message-box{
   display:flex;
   padding:10px;
@@ -107,7 +113,6 @@ input{
 
 <header>Private 1-to-1 Chat</header>
 
-<!-- Setup Section -->
 <div class="setup-box">
   <div class="input-group">
     <label>Your Name</label>
@@ -124,7 +129,6 @@ input{
   </button>
 </div>
 
-<!-- Chat Section -->
 <div id="chatContainer" style="display:none;">
   <div id="chat"></div>
 
@@ -134,7 +138,6 @@ input{
   </div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -153,7 +156,6 @@ firebase.auth().signInAnonymously();
 let roomId = "";
 let myName = "";
 
-/* Start Chat */
 function startChat(){
   myName = document.getElementById("myName").value.trim();
   let friend = document.getElementById("friendName").value.trim();
@@ -175,20 +177,30 @@ function startChat(){
     .onSnapshot(snapshot=>{
       const chat = document.getElementById("chat");
       chat.innerHTML="";
+
       snapshot.forEach(doc=>{
         let d = doc.data();
         let div = document.createElement("div");
         div.className="msg"+(d.name===myName?" me":"");
-        div.innerHTML="<b>"+d.name+"</b><br>"+d.text;
+
+        div.innerHTML = `
+          <b>${d.name}</b><br>
+          ${d.text}
+          ${d.name===myName ? 
+            `<br><button class="delete-btn" onclick="deleteMsg('${doc.id}')">Delete</button>` 
+            : "" }
+        `;
+
         chat.appendChild(div);
       });
+
       chat.scrollTop=chat.scrollHeight;
     });
 }
 
-/* Send Message */
 function send(){
-  let text = document.getElementById("msg").value.trim();
+  let input = document.getElementById("msg");
+  let text = input.value.trim();
   if(text==="") return;
 
   db.collection("privateChats")
@@ -200,7 +212,22 @@ function send(){
       time: Date.now()
     });
 
-  document.getElementById("msg").value="";
+  input.value="";
+}
+
+/* Enter key send */
+document.getElementById("msg").addEventListener("keydown", function(e){
+  if(e.key==="Enter"){
+    send();
+  }
+});
+
+function deleteMsg(id){
+  db.collection("privateChats")
+    .doc(roomId)
+    .collection("messages")
+    .doc(id)
+    .delete();
 }
 </script>
 
