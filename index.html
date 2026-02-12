@@ -4,25 +4,137 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Private Chat</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#ece5dd;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* Header */
+header{
+  background:#075e54;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-size:18px;
+  font-weight:bold;
+}
+
+/* Setup Box */
+.setup-box{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.input-group{
+  display:flex;
+  flex-direction:column;
+}
+
+input{
+  padding:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  outline:none;
+}
+
+.start-btn{
+  padding:10px;
+  background:#25d366;
+  border:none;
+  color:white;
+  font-weight:bold;
+  border-radius:6px;
+}
+
+/* Chat Area */
+#chatContainer{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+}
+
+/* Messages */
+#chat{
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+}
+
+.msg{
+  max-width:70%;
+  padding:8px 12px;
+  margin:6px 0;
+  border-radius:8px;
+  background:white;
+}
+
+.me{
+  background:#dcf8c6;
+  margin-left:auto;
+}
+
+/* Message Box */
+.message-box{
+  display:flex;
+  padding:10px;
+  background:white;
+}
+
+.message-box input{
+  flex:1;
+}
+
+.message-box button{
+  margin-left:10px;
+  padding:10px;
+  border:none;
+  border-radius:50%;
+  background:#25d366;
+  color:white;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Private 1-to-1 Chat</h2>
+<header>Private 1-to-1 Chat</header>
 
-<div>
-  Your Name: <input id="myName"><br><br>
-  Friend Name: <input id="friendName"><br><br>
-  <button onclick="startChat()">Start Chat</button>
+<!-- Setup Section -->
+<div class="setup-box">
+  <div class="input-group">
+    <label>Your Name</label>
+    <input type="text" id="myName" placeholder="Enter your name">
+  </div>
+
+  <div class="input-group">
+    <label>Friend Name</label>
+    <input type="text" id="friendName" placeholder="Enter friend name">
+  </div>
+
+  <button onclick="startChat()" class="start-btn">
+    Start Chat
+  </button>
 </div>
 
-<hr>
-
-<div id="chatBox" style="display:none;">
+<!-- Chat Section -->
+<div id="chatContainer" style="display:none;">
   <div id="chat"></div>
-  <input id="msg" placeholder="Message">
-  <button onclick="send()">Send</button>
+
+  <div class="message-box">
+    <input type="text" id="msg" placeholder="Type a message...">
+    <button onclick="send()">➤</button>
+  </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -41,32 +153,42 @@ firebase.auth().signInAnonymously();
 let roomId = "";
 let myName = "";
 
+/* Start Chat */
 function startChat(){
   myName = document.getElementById("myName").value.trim();
   let friend = document.getElementById("friendName").value.trim();
 
-  if(!myName || !friend) return alert("Enter both names");
+  if(!myName || !friend){
+    alert("Enter both names");
+    return;
+  }
 
-  // alphabetical room id
   roomId = [myName, friend].sort().join("_");
 
-  document.getElementById("chatBox").style.display = "block";
+  document.querySelector(".setup-box").style.display="none";
+  document.getElementById("chatContainer").style.display="flex";
 
   db.collection("privateChats")
     .doc(roomId)
     .collection("messages")
     .orderBy("time")
     .onSnapshot(snapshot=>{
+      const chat = document.getElementById("chat");
       chat.innerHTML="";
       snapshot.forEach(doc=>{
         let d = doc.data();
-        chat.innerHTML += "<p><b>"+d.name+":</b> "+d.text+"</p>";
+        let div = document.createElement("div");
+        div.className="msg"+(d.name===myName?" me":"");
+        div.innerHTML="<b>"+d.name+"</b><br>"+d.text;
+        chat.appendChild(div);
       });
+      chat.scrollTop=chat.scrollHeight;
     });
 }
 
+/* Send Message */
 function send(){
-  let text = msg.value;
+  let text = document.getElementById("msg").value.trim();
   if(text==="") return;
 
   db.collection("privateChats")
@@ -78,7 +200,7 @@ function send(){
       time: Date.now()
     });
 
-  msg.value="";
+  document.getElementById("msg").value="";
 }
 </script>
 
