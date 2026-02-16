@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Private Chat Pro</title>
+<title>Sharko Private Chat</title>
 
 <style>
 body{
@@ -129,7 +129,6 @@ input{
   gap:5px;
 }
 
-/* PLUS BUTTON */
 #plusBtn{
   width:40px;
   height:40px;
@@ -214,14 +213,9 @@ Sharko's Web Chat
   <div id="typingStatus" class="typing"></div>
 
   <div class="message-box">
-    <!-- Hidden File Input -->
     <input type="file" id="imageInput" accept="image/*" hidden>
-
-    <!-- PLUS ICON BUTTON -->
     <button type="button" id="plusBtn" onclick="document.getElementById('imageInput').click()">➕</button>
-
     <input type="text" id="msg" placeholder="Type message...">
-
     <button onclick="send()" class="sendBtn">➤</button>
   </div>
 </div>
@@ -232,9 +226,13 @@ Sharko's Web Chat
 
 <script>
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID"
+  apiKey: "AIzaSyA_kkzpXhU8BOmUsSjij1Uu1blA3AtGHtY",
+  authDomain: "chat-web-47d00.firebaseapp.com",
+  projectId: "chat-web-47d00",
+  storageBucket: "chat-web-47d00.firebasestorage.app",
+  messagingSenderId: "888841955234",
+  appId: "1:888841955234:web:715d8cad791ae6bce774fb",
+  measurementId: "G-L4ZHQ3DMZT"
 };
 
 firebase.initializeApp(firebaseConfig);
