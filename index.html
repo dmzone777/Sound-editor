@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Private Chat</title>
+<title>Private Chat Pro</title>
 
 <style>
 body{
@@ -22,6 +22,18 @@ header{
   text-align:center;
   font-size:18px;
   font-weight:bold;
+  position:relative;
+}
+
+.toggle-dark{
+  position:absolute;
+  right:15px;
+  top:15px;
+  background:white;
+  border:none;
+  padding:5px 10px;
+  border-radius:6px;
+  font-size:12px;
 }
 
 .setup-box{
@@ -70,12 +82,23 @@ input{
   margin:6px 0;
   border-radius:8px;
   background:white;
-  position:relative;
 }
 
 .me{
   background:#dcf8c6;
   margin-left:auto;
+}
+
+.time{
+  font-size:10px;
+  color:gray;
+  margin-top:3px;
+}
+
+.typing{
+  font-size:12px;
+  color:gray;
+  padding:5px 10px;
 }
 
 .delete-btn{
@@ -88,53 +111,118 @@ input{
   margin-top:5px;
 }
 
+.copy-btn{
+  background:#007bff;
+  color:white;
+  border:none;
+  padding:3px 6px;
+  font-size:10px;
+  border-radius:4px;
+  margin-left:5px;
+}
+
 .message-box{
   display:flex;
   padding:10px;
   background:white;
+  align-items:center;
+  gap:5px;
 }
 
-.message-box input{
+/* PLUS BUTTON */
+#plusBtn{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:50%;
+  background:#128c7e;
+  color:white;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+#plusBtn:active{
+  transform:scale(0.9);
+}
+
+.message-box input[type="text"]{
   flex:1;
 }
 
-.message-box button{
-  margin-left:10px;
-  padding:10px;
+.message-box button.sendBtn{
+  width:40px;
+  height:40px;
   border:none;
   border-radius:50%;
   background:#25d366;
   color:white;
+}
+
+.msg img{
+  max-width:100%;
+  border-radius:8px;
+  margin-top:5px;
+}
+
+/* DARK MODE */
+.dark{
+  background:#111;
+  color:white;
+}
+
+.dark header{
+  background:#000;
+}
+
+.dark .msg{
+  background:#222;
+  color:white;
+}
+
+.dark .me{
+  background:#056162;
 }
 </style>
 </head>
 
 <body>
 
-<header>Sharko's web</header>
+<header>
+Sharko's Web Chat
+<button class="toggle-dark" onclick="toggleDark()">🌙</button>
+</header>
 
 <div class="setup-box">
   <div class="input-group">
     <label>Your Name</label>
-    <input type="text" id="myName" placeholder="Enter your name">
+    <input type="text" id="myName">
   </div>
 
   <div class="input-group">
     <label>Friend Name</label>
-    <input type="text" id="friendName" placeholder="Enter friend name">
+    <input type="text" id="friendName">
   </div>
 
-  <button onclick="startChat()" class="start-btn">
-    Start Chat
-  </button>
+  <button onclick="startChat()" class="start-btn">Start Chat</button>
 </div>
 
 <div id="chatContainer" style="display:none;">
   <div id="chat"></div>
+  <div id="typingStatus" class="typing"></div>
 
   <div class="message-box">
-    <input type="text" id="msg" placeholder="Type a message...">
-    <button onclick="send()">➤</button>
+    <!-- Hidden File Input -->
+    <input type="file" id="imageInput" accept="image/*" hidden>
+
+    <!-- PLUS ICON BUTTON -->
+    <button type="button" id="plusBtn" onclick="document.getElementById('imageInput').click()">➕</button>
+
+    <input type="text" id="msg" placeholder="Type message...">
+
+    <button onclick="send()" class="sendBtn">➤</button>
   </div>
 </div>
 
@@ -144,28 +232,25 @@ input{
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyA_kkzpXhU8BOmUsSjij1Uu1blA3AtGHtY",
-  authDomain: "chat-web-47d00.firebaseapp.com",
-  projectId: "chat-web-47d00"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 firebase.auth().signInAnonymously();
 
-let roomId = "";
-let myName = "";
+let roomId="";
+let myName="";
+let typingTimeout;
 
 function startChat(){
-  myName = document.getElementById("myName").value.trim();
-  let friend = document.getElementById("friendName").value.trim();
+  myName=document.getElementById("myName").value.trim();
+  let friend=document.getElementById("friendName").value.trim();
+  if(!myName||!friend){alert("Enter both names");return;}
 
-  if(!myName || !friend){
-    alert("Enter both names");
-    return;
-  }
-
-  roomId = [myName, friend].sort().join("_");
+  roomId=[myName,friend].sort().join("_");
 
   document.querySelector(".setup-box").style.display="none";
   document.getElementById("chatContainer").style.display="flex";
@@ -175,51 +260,111 @@ function startChat(){
     .collection("messages")
     .orderBy("time")
     .onSnapshot(snapshot=>{
-      const chat = document.getElementById("chat");
+      const chat=document.getElementById("chat");
       chat.innerHTML="";
 
       snapshot.forEach(doc=>{
-        let d = doc.data();
-        let div = document.createElement("div");
+        let d=doc.data();
+
+        if(d.name!==myName && !d.seen){
+          db.collection("privateChats")
+            .doc(roomId)
+            .collection("messages")
+            .doc(doc.id)
+            .update({seen:true});
+        }
+
+        let div=document.createElement("div");
         div.className="msg"+(d.name===myName?" me":"");
 
-        div.innerHTML = `
-          <b>${d.name}</b><br>
-          ${d.text}
-          ${d.name===myName ? 
-            `<br><button class="delete-btn" onclick="deleteMsg('${doc.id}')">Delete</button>` 
-            : "" }
-        `;
+        let date=new Date(d.time);
+        let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
 
+        div.innerHTML=`
+          <b>${d.name}</b><br>
+          ${d.text?d.text:""}
+          ${d.image?`<br><img src="${d.image}">`:""}
+          <div class="time">
+            ${time}
+            ${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}
+          </div>
+          ${d.name===myName?`
+          <button class="delete-btn" onclick="deleteMsg('${doc.id}')">Delete</button>
+          `:""}
+          <button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>
+        `;
         chat.appendChild(div);
       });
 
       chat.scrollTop=chat.scrollHeight;
     });
+
+  db.collection("privateChats")
+    .doc(roomId)
+    .onSnapshot(doc=>{
+      if(doc.exists){
+        let data=doc.data();
+        if(data.typing && data.typing!==myName){
+          document.getElementById("typingStatus").innerText=data.typing+" is typing...";
+        }else{
+          document.getElementById("typingStatus").innerText="";
+        }
+      }
+    });
 }
 
 function send(){
-  let input = document.getElementById("msg");
-  let text = input.value.trim();
-  if(text==="") return;
+  let input=document.getElementById("msg");
+  let text=input.value.trim();
+  if(text==="")return;
 
   db.collection("privateChats")
     .doc(roomId)
     .collection("messages")
     .add({
-      name: myName,
-      text: text,
-      time: Date.now()
+      name:myName,
+      text:text,
+      time:Date.now(),
+      seen:false
     });
 
   input.value="";
 }
 
-/* Enter key send */
-document.getElementById("msg").addEventListener("keydown", function(e){
-  if(e.key==="Enter"){
-    send();
-  }
+document.getElementById("msg").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){send();}
+});
+
+document.getElementById("msg").addEventListener("input",function(){
+  db.collection("privateChats")
+    .doc(roomId)
+    .set({typing:myName},{merge:true});
+
+  clearTimeout(typingTimeout);
+  typingTimeout=setTimeout(()=>{
+    db.collection("privateChats")
+      .doc(roomId)
+      .set({typing:""},{merge:true});
+  },2000);
+});
+
+document.getElementById("imageInput").addEventListener("change",function(e){
+  const file=e.target.files[0];
+  if(!file)return;
+
+  const reader=new FileReader();
+  reader.onload=function(){
+    db.collection("privateChats")
+      .doc(roomId)
+      .collection("messages")
+      .add({
+        name:myName,
+        image:reader.result,
+        time:Date.now(),
+        seen:false
+      });
+  };
+  reader.readAsDataURL(file);
 });
 
 function deleteMsg(id){
@@ -228,6 +373,15 @@ function deleteMsg(id){
     .collection("messages")
     .doc(id)
     .delete();
+}
+
+function copyMsg(text){
+  navigator.clipboard.writeText(text);
+  alert("Copied!");
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
 }
 </script>
 
