@@ -67,7 +67,7 @@ Sharko's Web Chat
 
 <div class="message-box">
 <input type="file" id="imageInput" accept="image/*" hidden>
-<button id="plusBtn" onclick="document.getElementById('imageInput').click()">➕</button>
+<button id="plusBtn" onclick="plusSound.play();document.getElementById('imageInput').click()">➕</button>
 <button onclick="toggleEmoji()">😊</button>
 <input type="text" id="msg" placeholder="Type message...">
 <button onclick="send()" class="sendBtn">➤</button>
@@ -83,9 +83,21 @@ const firebaseConfig={apiKey:"AIzaSyA_kkzpXhU8BOmUsSjij1Uu1blA3AtGHtY",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 firebase.auth().signInAnonymously();
-let roomId="",myName="",typingTimeout;
+let roomId="",myName="";
+
+/* BUTTON SOUNDS */
+const sendSound=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+const deleteSound=new Audio("https://actions.google.com/sounds/v1/cartoon/woodpecker_pecking.ogg");
+const copySound=new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+const editSound=new Audio("https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg");
+const emojiSound=new Audio("https://actions.google.com/sounds/v1/cartoon/boing.ogg");
+const plusSound=new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
+const darkSound=new Audio("https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg");
+const startSound=new Audio("https://actions.google.com/sounds/v1/cartoon/descending_whistle_1.ogg");
+const msgSound=new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 
 function startChat(){
+startSound.play();
 myName=document.getElementById("myName").value.trim();
 let friend=document.getElementById("friendName").value.trim();
 if(!myName||!friend){alert("Enter both names");return;}
@@ -114,22 +126,20 @@ chat.scrollTop=chat.scrollHeight;
 }
 
 function send(){
+sendSound.play();
 let input=document.getElementById("msg");let text=input.value.trim();if(text==="")return;
 db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:text,time:Date.now()});
 input.value="";
 }
 
-document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter"){send();}});
+document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter"){sendSound.play();send();}});
 
-function deleteMsg(id){db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
-function copyMsg(text){navigator.clipboard.writeText(text);alert("Copied!");}
-function editMsg(id,text){let n=prompt("Edit message",text);if(n){db.collection("privateChats").doc(roomId).collection("messages").doc(id).update({text:n});}}
-function toggleDark(){document.body.classList.toggle("dark");}
-
-function toggleEmoji(){let box=document.getElementById("emojiBox");box.style.display=box.style.display==="block"?"none":"block";}
+function deleteMsg(id){deleteSound.play();db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
+function copyMsg(text){copySound.play();navigator.clipboard.writeText(text);alert("Copied!");}
+function editMsg(id,text){editSound.play();let n=prompt("Edit message",text);if(n){db.collection("privateChats").doc(roomId).collection("messages").doc(id).update({text:n});}}
+function toggleDark(){darkSound.play();document.body.classList.toggle("dark");}
+function toggleEmoji(){emojiSound.play();let box=document.getElementById("emojiBox");box.style.display=box.style.display==="block"?"none":"block";}
 function addEmoji(e){document.getElementById("msg").value+=e;}
-
-const msgSound=new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 
 document.getElementById("imageInput").addEventListener("change",function(e){
 const file=e.target.files[0];if(!file)return;
