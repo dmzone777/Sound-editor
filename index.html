@@ -6,7 +6,7 @@
 <title>Sharko Private Chat</title>
 
 <style>
-body{margin:0;font-family:'Segoe UI',sans-serif;background:#ece5dd;height:100vh;display:flex;flex-direction:column;}
+body{margin:0;font-family:Segoe UI;background:#ece5dd;height:100vh;display:flex;flex-direction:column;transition:.3s;}
 header{background:#075e54;color:white;padding:15px;text-align:center;font-weight:bold;position:relative;}
 .toggle-dark{position:absolute;right:15px;top:12px;border:none;padding:5px 10px;border-radius:6px;}
 #chatList{background:white;max-height:150px;overflow:auto;}
@@ -15,11 +15,17 @@ header{background:#075e54;color:white;padding:15px;text-align:center;font-weight
 input{padding:10px;border-radius:8px;border:1px solid #ccc;}
 .start-btn{padding:10px;background:#25d366;border:none;color:white;border-radius:8px;}
 #chatContainer{display:flex;flex-direction:column;flex:1;}
-#chat{flex:1;overflow:auto;padding:10px;}
-.msg{max-width:70%;padding:8px;margin:6px 0;border-radius:10px;background:white;}
+#chat{flex:1;overflow:auto;padding:10px;scroll-behavior:smooth;}
+.msg{max-width:70%;padding:10px;margin:6px 0;border-radius:10px;background:white;animation:pop .2s;}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 .me{background:#dcf8c6;margin-left:auto;}
+.time{font-size:10px;color:#666;margin-top:4px;}
+.typing{font-size:12px;color:gray;padding:5px;}
 .message-box{display:flex;padding:10px;background:white;gap:5px;}
-.message-box input{flex:1;}
+.delete-btn{background:red;color:white;border:none;padding:3px 6px;font-size:10px;border-radius:4px;margin-top:5px;}
+.copy-btn{background:#007bff;color:white;border:none;padding:3px 6px;font-size:10px;border-radius:4px;margin-left:5px;}
+.dark{background:#111;color:white;}
+.dark .msg{background:#1f2c34;color:white;}
 </style>
 </head>
 
@@ -40,6 +46,8 @@ Sharko Chat
 
 <div id="chatContainer" style="display:none;">
 <div id="chat"></div>
+<div id="typingStatus" class="typing"></div>
+
 <div class="message-box">
 <input type="file" id="imageInput" hidden>
 <button onclick="document.getElementById('imageInput').click()">➕</button>
@@ -53,18 +61,19 @@ Sharko Chat
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-const firebaseConfig={apiKey:"AIzaSyA",authDomain:"chat-web-47d00.firebaseapp.com",projectId:"chat-web-47d00"};
+const firebaseConfig={apiKey:"AIzaSy",authDomain:"chat-web-47d00.firebaseapp.com",projectId:"chat-web-47d00"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-firebase.auth().signInAnonymously();
 
-let roomId="",myName="";
+firebase.auth().onAuthStateChanged(u=>{if(!u)firebase.auth().signInAnonymously();});
+
+let roomId="",myName="",typingTimeout;
 
 window.onload=function(){
 renderChatList();
 let savedMy=localStorage.getItem("myName");
 let savedFriend=localStorage.getItem("friendName");
-if(savedMy&&savedFriend){initChat(savedMy,savedFriend);}
+if(savedMy&&savedFriend)initChat(savedMy,savedFriend);
 }
 
 function startChat(){
@@ -78,7 +87,6 @@ localStorage.setItem("friendName",friend);
 let list=JSON.parse(localStorage.getItem("chatFriends")||"[]");
 if(!list.includes(friend)){list.push(friend);localStorage.setItem("chatFriends",JSON.stringify(list));}
 renderChatList();
-
 initChat(myName,friend);
 }
 
@@ -98,6 +106,7 @@ box.appendChild(div);
 function initChat(my,friend){
 myName=my;
 roomId=[my,friend].sort().join("_");
+
 document.querySelector(".setup-box").style.display="none";
 document.getElementById("chatContainer").style.display="flex";
 
@@ -105,21 +114,57 @@ db.collection("privateChats").doc(roomId).collection("messages").orderBy("time")
 const chat=document.getElementById("chat");chat.innerHTML="";
 snapshot.forEach(doc=>{
 let d=doc.data();
+if(d.name!==myName&&!d.seen){doc.ref.update({seen:true});}
+
+let date=new Date(d.time);
+let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
+
 let div=document.createElement("div");
 div.className="msg"+(d.name===myName?" me":"");
-div.innerHTML=d.text||"";
+
+div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}" style="max-width:100%;border-radius:8px">`:""}
+<div class="time">${time}${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}</div>
+${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${doc.id}')">Delete</button>`:""}
+<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>`;
+
 chat.appendChild(div);
 });
+chat.scrollTop=chat.scrollHeight;
 });
+
+db.collection("privateChats").doc(roomId).onSnapshot(doc=>{
+if(doc.exists){
+let data=doc.data();
+if(data.typing&&data.typing!==myName)typingStatus.innerText=data.typing+" typing...";
+else typingStatus.innerText="";
+}});
 }
 
 function send(){
-let text=document.getElementById("msg").value.trim();
+let input=document.getElementById("msg");
+let text=input.value.trim();
 if(!text)return;
-db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:text,time:Date.now()});
-document.getElementById("msg").value="";
+db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:text,time:Date.now(),seen:false});
+input.value="";
 }
 
+msg.addEventListener("keydown",e=>{if(e.key==="Enter")send();});
+
+msg.addEventListener("input",()=>{
+db.collection("privateChats").doc(roomId).set({typing:myName},{merge:true});
+clearTimeout(typingTimeout);
+typingTimeout=setTimeout(()=>db.collection("privateChats").doc(roomId).set({typing:""},{merge:true}),2000);
+});
+
+imageInput.addEventListener("change",e=>{
+const file=e.target.files[0];if(!file)return;
+const reader=new FileReader();
+reader.onload=()=>db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,image:reader.result,time:Date.now(),seen:false});
+reader.readAsDataURL(file);
+});
+
+function deleteMsg(id){db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
+function copyMsg(text){navigator.clipboard.writeText(text);alert("Copied!");}
 function toggleDark(){document.body.classList.toggle("dark");}
 </script>
 </body>
