@@ -8,23 +8,24 @@
 <style>
 body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#ece5dd,#d6dbd7);display:flex;flex-direction:column;height:100vh;transition:.3s;}
 header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15px;text-align:center;font-size:18px;font-weight:bold;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.2);}
-.toggle-dark{position:absolute;right:15px;top:12px;background:rgba(255,255,255,.2);border:none;padding:6px 10px;border-radius:8px;color:white;cursor:pointer;backdrop-filter:blur(10px);}
+.toggle-dark{position:absolute;right:15px;top:12px;background:rgba(255,255,255,.2);border:none;padding:6px 10px;border-radius:8px;color:white;cursor:pointer;}
 .online{font-size:12px;opacity:.8}
 .setup-box{padding:20px;display:flex;flex-direction:column;gap:12px;}
-.input-group input{padding:12px;border-radius:10px;border:1px solid #ccc;outline:none;transition:.2s;}
+.input-group input{padding:12px;border-radius:10px;border:1px solid #ccc;}
 .start-btn{padding:12px;background:linear-gradient(135deg,#25d366,#128c7e);border:none;color:white;font-weight:bold;border-radius:10px;cursor:pointer;}
 #chatContainer{display:flex;flex-direction:column;flex:1;}
-#chat{flex:1;overflow-y:auto;padding:12px;scroll-behavior:smooth;}
-.msg{max-width:70%;padding:10px 14px;margin:8px 0;border-radius:14px;background:rgba(255,255,255,.8);backdrop-filter:blur(10px);box-shadow:0 3px 10px rgba(0,0,0,.15);}
+#chat{flex:1;overflow-y:auto;padding:12px;}
+.msg{max-width:70%;padding:10px 14px;margin:8px 0;border-radius:14px;background:rgba(255,255,255,.8);}
+.msg:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.25);}
 .me{background:linear-gradient(135deg,#dcf8c6,#b7f3a1);margin-left:auto;}
 .time{font-size:10px;color:#666;margin-top:4px;}
-.delete-btn,.copy-btn{color:white;border:none;padding:4px 7px;font-size:10px;border-radius:6px;margin-top:5px;cursor:pointer;}
-.delete-btn{background:#ff4d4d;}
-.copy-btn{background:#007bff;margin-left:5px;}
 .message-box{display:flex;padding:10px;background:rgba(255,255,255,.9);align-items:center;gap:6px;}
-#plusBtn{width:42px;height:42px;border:none;border-radius:50%;background:#075e54;color:white;font-size:20px;cursor:pointer;}
+#plusBtn{width:42px;height:42px;border:none;border-radius:50%;background:linear-gradient(135deg,#128c7e,#075e54);color:white;font-size:20px;}
 .message-box input[type="text"]{flex:1;padding:12px;border-radius:20px;border:1px solid #ccc;}
-.message-box button.sendBtn{width:42px;height:42px;border:none;border-radius:50%;background:#128c7e;color:white;cursor:pointer;}
+.message-box button.sendBtn{width:42px;height:42px;border:none;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);color:white;}
+.msg img{max-width:100%;border-radius:10px;margin-top:6px;}
+.preview{max-width:120px;border-radius:10px;margin:5px;}
+.react{font-size:14px;cursor:pointer;margin-left:6px;}
 .emoji-box{position:absolute;bottom:70px;right:20px;background:white;padding:10px;border-radius:12px;display:none;}
 .dark{background:#0b141a;color:white;}
 .dark header{background:#000;}
@@ -39,12 +40,12 @@ header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15
 <header>
 Sharko's Web Chat
 <button class="toggle-dark" onclick="toggleDark()">🌙</button>
-<div class="online">offline</div>
+<div class="online" id="status">offline</div>
 </header>
 
 <div class="setup-box">
-<div class="input-group"><input type="text" id="myName" placeholder="Your name"></div>
-<div class="input-group"><input type="text" id="friendName" placeholder="Friend name"></div>
+<div class="input-group"><label>Your Name</label><input type="text" id="myName"></div>
+<div class="input-group"><label>Friend Name</label><input type="text" id="friendName"></div>
 <button onclick="startChat()" class="start-btn">Start Chat</button>
 </div>
 
@@ -59,8 +60,8 @@ Sharko's Web Chat
 </div>
 
 <div class="message-box">
-<input type="file" id="imageInput" hidden>
-<button id="plusBtn" onclick="plusSound();document.getElementById('imageInput').click()">➕</button>
+<input type="file" id="imageInput" accept="image/*" hidden>
+<button id="plusBtn" onclick="document.getElementById('imageInput').click()">➕</button>
 <button onclick="toggleEmoji()">😊</button>
 <input type="text" id="msg" placeholder="Type message...">
 <button onclick="send()" class="sendBtn">➤</button>
@@ -72,64 +73,60 @@ Sharko's Web Chat
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-firebase.initializeApp({projectId:"chat-web-47d00"});
+const firebaseConfig={apiKey:"AIzaSyA_kkzpXhU8BOmUsSjij1Uu1blA3AtGHtY",authDomain:"chat-web-47d00.firebaseapp.com",projectId:"chat-web-47d00"};
+firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 firebase.auth().signInAnonymously();
-
 let roomId="",myName="";
 
-/* 1 SEC SOUND PLAYER */
-function playSound(src){
-let s=new Audio(src);
-s.play();
-setTimeout(()=>{s.pause();s.currentTime=0;},1000);
-}
-
-const sendSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3");
-const deleteSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3");
-const copySound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");
-const editSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/1090/1090-preview.mp3");
-const emojiSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3");
-const plusSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3");
-const darkSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/2103/2103-preview.mp3");
-const startSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/1655/1655-preview.mp3");
-const msgSound=()=>playSound("https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3");
-
 function startChat(){
-startSound();
-myName=myName=document.getElementById("myName").value.trim();
+myName=document.getElementById("myName").value.trim();
 let friend=document.getElementById("friendName").value.trim();
-if(!myName||!friend)return alert("Enter names");
+if(!myName||!friend){alert("Enter both names");return;}
 roomId=[myName,friend].sort().join("_");
 document.querySelector(".setup-box").style.display="none";
 document.getElementById("chatContainer").style.display="flex";
 
-db.collection("privateChats").doc(roomId).collection("messages").orderBy("time").onSnapshot(s=>{
-chat.innerHTML="";
-s.forEach(doc=>{
+db.collection("privateChats").doc(roomId).collection("messages").orderBy("time").onSnapshot(snapshot=>{
+const chat=document.getElementById("chat");chat.innerHTML="";
+snapshot.forEach(doc=>{
 let d=doc.data();
-let div=document.createElement("div");
-div.className="msg"+(d.name===myName?" me":"");
-div.innerHTML=d.text||"";
+let div=document.createElement("div");div.className="msg"+(d.name===myName?" me":"");
+let date=new Date(d.time);
+let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
+div.innerHTML=`<b>${d.name}</b><br>${d.text?d.text:""}${d.image?`<br><img src="${d.image}">`:""}<div class="time">${time}</div>
+${d.name===myName?`<button onclick="deleteMsg('${doc.id}')">Delete</button>
+<button onclick="editMsg('${doc.id}','${d.text||''}')">Edit</button>`:""}
+<button onclick="copyMsg('${d.text||''}')">Copy</button>
+<span class="react" onclick="copyMsg('❤️')">❤️</span>
+<span class="react" onclick="copyMsg('🔥')">🔥</span>`;
 chat.appendChild(div);
-msgSound();
 });
+chat.scrollTop=chat.scrollHeight;
 });
 }
 
 function send(){
-sendSound();
-let t=msg.value.trim(); if(!t)return;
-db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:t,time:Date.now()});
-msg.value="";
+let input=document.getElementById("msg");let text=input.value.trim();if(text==="")return;
+db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:text,time:Date.now()});
+input.value="";
 }
 
-function deleteMsg(id){deleteSound();}
-function copyMsg(text){copySound();navigator.clipboard.writeText(text);}
-function editMsg(){editSound();}
-function toggleDark(){darkSound();document.body.classList.toggle("dark");}
-function toggleEmoji(){emojiSound();emojiBox.style.display=emojiBox.style.display==="block"?"none":"block";}
-function addEmoji(e){msg.value+=e;}
+function deleteMsg(id){db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
+function copyMsg(text){navigator.clipboard.writeText(text);}
+function editMsg(id,text){let n=prompt("Edit message",text);if(n){db.collection("privateChats").doc(roomId).collection("messages").doc(id).update({text:n});}}
+function toggleDark(){document.body.classList.toggle("dark");}
+function toggleEmoji(){let box=document.getElementById("emojiBox");box.style.display=box.style.display==="block"?"none":"block";}
+function addEmoji(e){document.getElementById("msg").value+=e;}
+
+document.getElementById("imageInput").addEventListener("change",function(e){
+const file=e.target.files[0];if(!file)return;
+const reader=new FileReader();
+reader.onload=function(){
+db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,image:reader.result,time:Date.now()});
+};
+reader.readAsDataURL(file);
+});
 </script>
 </body>
 </html>
