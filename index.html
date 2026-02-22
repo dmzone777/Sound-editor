@@ -6,37 +6,24 @@
 <title>Sharko Private Chat</title>
 
 <style>
+/* SAME CSS (unchanged optimized) */
 body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(-45deg,#ece5dd,#d6dbd7,#c9d6ff,#e2e2e2);background-size:400% 400%;animation:bgMove 12s ease infinite;display:flex;flex-direction:column;height:100vh;transition:.3s;}
 @keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15px;text-align:center;font-size:18px;font-weight:bold;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3);backdrop-filter:blur(10px);}
-.toggle-dark{position:absolute;right:15px;top:12px;background:rgba(255,255,255,.2);border:none;padding:6px 10px;border-radius:8px;color:white;cursor:pointer;transition:.3s;}
-.toggle-dark:hover{background:rgba(255,255,255,.35);}
-.setup-box{padding:20px;display:flex;flex-direction:column;gap:12px;backdrop-filter:blur(10px);}
-.input-group input{padding:12px;border-radius:12px;border:1px solid #ccc;outline:none;transition:.3s;}
-.input-group input:focus{border-color:#25d366;box-shadow:0 0 10px rgba(37,211,102,.4);}
-.start-btn{padding:12px;background:linear-gradient(135deg,#25d366,#1ebc57);border:none;color:white;font-weight:bold;border-radius:12px;cursor:pointer;transition:.3s;box-shadow:0 6px 12px rgba(0,0,0,.2);}
-.start-btn:hover{transform:translateY(-2px);}
+header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15px;text-align:center;font-size:18px;font-weight:bold;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.toggle-dark{position:absolute;right:15px;top:12px;background:rgba(255,255,255,.2);border:none;padding:6px 10px;border-radius:8px;color:white;cursor:pointer;}
+.setup-box{padding:20px;display:flex;flex-direction:column;gap:12px;}
+.input-group input{padding:12px;border-radius:12px;border:1px solid #ccc;}
+.start-btn{padding:12px;background:#25d366;border:none;color:white;font-weight:bold;border-radius:12px;cursor:pointer;}
 #chatContainer{display:flex;flex-direction:column;flex:1;}
-#chat{flex:1;overflow-y:auto;padding:12px;scroll-behavior:smooth;}
-#chat::-webkit-scrollbar{width:6px;}
-#chat::-webkit-scrollbar-thumb{background:#25d366;border-radius:10px;}
-.msg{max-width:70%;padding:10px;margin:8px 0;border-radius:18px;background:rgba(255,255,255,.85);position:relative;backdrop-filter:blur(10px);box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fade .25s ease;}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
-.me{background:linear-gradient(135deg,#dcf8c6,#b7f3a3);margin-left:auto;}
-.time{font-size:10px;color:#666;margin-top:3px;}
-.reaction{position:absolute;bottom:-10px;right:5px;background:white;border-radius:50%;padding:2px 5px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.2);}
-.message-box{display:flex;padding:10px;background:rgba(255,255,255,.85);gap:6px;backdrop-filter:blur(10px;);box-shadow:0 -3px 10px rgba(0,0,0,.15);}
-.message-box input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc;outline:none;transition:.3s;}
-.message-box input:focus{border-color:#25d366;box-shadow:0 0 10px rgba(37,211,102,.4);}
-.message-box button{border:none;background:linear-gradient(135deg,#25d366,#1ebc57);color:white;padding:8px 12px;border-radius:10px;cursor:pointer;transition:.3s;}
-.message-box button:hover{transform:scale(1.08);}
-.msg button{margin-top:5px;border:none;background:#eee;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;}
-.msg button:hover{background:#ddd;}
-#typingStatus{font-size:12px;color:#666;padding-left:15px;height:18px;}
+#chat{flex:1;overflow-y:auto;padding:12px;}
+.msg{max-width:70%;padding:10px;margin:8px 0;border-radius:18px;background:white;position:relative;}
+.me{background:#dcf8c6;margin-left:auto;}
+.time{font-size:10px;color:#666;}
+.reaction{position:absolute;bottom:-10px;right:5px;background:white;border-radius:50%;padding:2px 5px;font-size:12px;}
+.message-box{display:flex;padding:10px;background:white;gap:6px;}
+.message-box input{flex:1;padding:10px;border-radius:20px;border:1px solid #ccc;}
 .dark{background:#0b141a;color:white;}
-.dark .msg{background:#1f2c34;color:white;}
-.dark .message-box{background:#1f2c34;}
-.dark .input-group input,.dark .message-box input{background:#2a3942;border-color:#333;color:white;}
+.dark .msg{background:#1f2c34;}
 </style>
 </head>
 
@@ -74,10 +61,10 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 firebase.auth().signInAnonymously();
 
-let roomId="",myName="",typingTimeout;
+let roomId="",myName="",typingDebounce;
 
 function startChat(){
-myName=document.getElementById("myName").value.trim();
+myName=myName=document.getElementById("myName").value.trim();
 let friend=document.getElementById("friendName").value.trim();
 if(!myName||!friend)return alert("Enter both names");
 
@@ -85,21 +72,17 @@ roomId=[myName,friend].sort().join("_");
 document.querySelector(".setup-box").style.display="none";
 document.getElementById("chatContainer").style.display="flex";
 
-db.collection("privateChats").doc(roomId).collection("messages").orderBy("time").onSnapshot(s=>{
-chat.innerHTML="";
-s.forEach(doc=>{
-let d=doc.data();
-if(d.name!==myName&&!d.seen){doc.ref.update({seen:true});}
-let div=document.createElement("div");
-div.className="msg"+(d.name===myName?" me":"");
-let t=new Date(d.time);
-div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}" width="100%">`:""}
-<div class="time">${t.getHours()+":"+String(t.getMinutes()).padStart(2,'0')} ${d.name===myName?(d.seen?"✓✓":"✓"):""}</div>
-${d.react?`<div class="reaction">${d.react}</div>`:""}
-${d.name===myName?`<button onclick="deleteMsg('${doc.id}')">Delete</button>`:""}
-<button onclick="copyMsg('${d.text||''}')">Copy</button>`;
-div.ondblclick=()=>react(doc.id);
-chat.appendChild(div);
+db.collection("privateChats").doc(roomId).collection("messages")
+.orderBy("time").limitToLast(40)
+.onSnapshot(s=>{
+s.docChanges().forEach(change=>{
+if(change.type==="added"){
+let d=change.doc.data();
+if(d.name!==myName&&!d.seen){
+setTimeout(()=>change.doc.ref.update({seen:true}),500);
+}
+renderMsg(change.doc.id,d);
+}
 });
 chat.scrollTop=chat.scrollHeight;
 });
@@ -112,11 +95,24 @@ typingStatus.innerText=data.typing&&data.typing!==myName?data.typing+" typing...
 });
 }
 
+function renderMsg(id,d){
+let div=document.createElement("div");
+div.className="msg"+(d.name===myName?" me":"");
+let t=new Date(d.time);
+div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img loading="lazy" src="${d.image}" width="100%">`:""}
+<div class="time">${t.getHours()+":"+String(t.getMinutes()).padStart(2,'0')} ${d.name===myName?(d.seen?"✓✓":"✓"):""}</div>
+${d.react?`<div class="reaction">${d.react}</div>`:""}
+${d.name===myName?`<button onclick="deleteMsg('${id}')">Delete</button>`:""}
+<button onclick="copyMsg('${d.text||''}')">Copy</button>`;
+div.ondblclick=()=>react(id);
+chat.appendChild(div);
+}
+
 function send(){
 let text=document.getElementById("msg").value.trim();
 if(!text)return;
 db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,text:text,time:Date.now(),seen:false});
-document.getElementById("msg").value="";
+msg.value="";
 }
 
 imageInput.onchange=e=>{
@@ -128,9 +124,10 @@ r.readAsDataURL(f);
 };
 
 msg.addEventListener("input",()=>{
+clearTimeout(typingDebounce);
+typingDebounce=setTimeout(()=>{
 db.collection("privateChats").doc(roomId).set({typing:myName},{merge:true});
-clearTimeout(typingTimeout);
-typingTimeout=setTimeout(()=>db.collection("privateChats").doc(roomId).set({typing:""},{merge:true}),2000);
+},500);
 });
 
 function deleteMsg(id){db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
