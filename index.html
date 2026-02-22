@@ -31,24 +31,7 @@ header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15
 .dark .msg{background:#1f2c34;}
 .dark .me{background:#056162;}
 .dark .message-box{background:#1f2c34;}
-
-/* ⭐ Extra Button CSS */
-.extraBtnBox{
-padding:8px;
-background:#fff;
-text-align:center;
-box-shadow:0 -2px 6px rgba(0,0,0,.1);
-}
-.extraBtnBox button{
-padding:10px 18px;
-border:none;
-border-radius:10px;
-background:linear-gradient(135deg,#ff9800,#ff5722);
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-.dark .extraBtnBox{background:#1f2c34;}
+#scrollBtn{position:fixed;bottom:80px;right:20px;padding:10px 15px;border:none;border-radius:50px;background:#25d366;color:white;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.2);}
 </style>
 </head>
 
@@ -75,12 +58,10 @@ Sharko's Web Chat
 <input type="text" id="msg" placeholder="Type message...">
 <button onclick="send()" class="sendBtn">➤</button>
 </div>
+</div>
 
-<!-- ⭐ Extra Button at Bottom -->
-<div class="extraBtnBox">
-<button onclick="extraAction()">⭐ Extra</button>
-</div>
-</div>
+<!-- Scroll to last message button -->
+<button id="scrollBtn" onclick="scrollToLastMessage()">↓ Last</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -118,7 +99,7 @@ let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
 
 div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}">`:""}<div class="time">${time}${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}</div>${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${change.doc.id}')">Delete</button>`:""}<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>`;
 chat.appendChild(div);
-chat.scrollTop=chat.scrollHeight;
+chat.scrollTop=chat.scrollHeight; // Auto scroll for new messages
 if(d.name!==myName&&!d.seen)change.doc.ref.update({seen:true});
 }
 });
@@ -182,9 +163,10 @@ alert("Copied ✅");
 
 function toggleDark(){document.body.classList.toggle("dark");}
 
-// ⭐ Extra button action
-function extraAction(){
-alert("Extra Button Clicked 🚀");
+// Scroll to last message function
+function scrollToLastMessage(){
+    const chat=document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
 }
 </script>
 </body>
