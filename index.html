@@ -56,7 +56,7 @@ const db=firebase.firestore();firebase.auth().signInAnonymously();
 let roomId="",myName="",typingTimer=null;
 function startChat(){myName=document.getElementById("myName").value.trim();let friend=document.getElementById("friendName").value.trim();if(!myName||!friend){alert("Enter both names");return;}roomId=[myName,friend].sort().join("_");document.querySelector(".setup-box").style.display="none";document.getElementById("chatContainer").style.display="flex";
 db.collection("privateChats").doc(roomId).collection("messages").orderBy("time").onSnapshot(snapshot=>{const chat=document.getElementById("chat");snapshot.docChanges().forEach(change=>{if(change.type==="added"){let d=change.doc.data();let div=document.createElement("div");div.className="msg"+(d.name===myName?" me":"");div.setAttribute("data-id",change.doc.id);let date=new Date(d.time);let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}">`:""}<div class="time">${time}${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}</div>${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${change.doc.id}')">Delete</button>`:""}<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>`;chat.appendChild(div);chat.scrollTop=chat.scrollHeight;if(d.name!==myName&&!d.seen)change.doc.ref.update({seen:true});}});
-setTimeout(()=>{let saved=localStorage.getItem("chatScroll");if(saved)document.getElementById("chat").scrollTop=saved;},500);
+setTimeout(()=>{let saved=localStorage.getItem("chatScroll_"+roomId);if(saved)document.getElementById("chat").scrollTop=saved;},800);
 });
 db.collection("privateChats").doc(roomId).onSnapshot(doc=>{if(doc.exists){let data=doc.data();document.getElementById("typingStatus").innerText=(data.typing&&data.typing!==myName)?data.typing+" is typing...":"";}});
 }
@@ -66,7 +66,7 @@ document.getElementById("msg").addEventListener("input",function(){clearTimeout(
 document.getElementById("imageInput").addEventListener("change",function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){let img=new Image();img.onload=function(){let canvas=document.createElement("canvas");let ctx=canvas.getContext("2d");canvas.width=img.width*0.6;canvas.height=img.height*0.6;ctx.drawImage(img,0,0,canvas.width,canvas.height);let compressed=canvas.toDataURL("image/jpeg",0.6);db.collection("privateChats").doc(roomId).collection("messages").add({name:myName,image:compressed,time:Date.now(),seen:false});};img.src=ev.target.result;};reader.readAsDataURL(file);});
 function deleteMsg(id){if(!confirm("Delete this message?"))return;const el=document.querySelector(`[data-id='${id}']`);if(el){el.style.opacity="0";el.style.transform="scale(0.8)";setTimeout(()=>el.remove(),200);}db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete().catch(()=>alert("Delete failed"));}
 function copyMsg(text){navigator.clipboard.writeText(text);}function toggleDark(){document.body.classList.toggle("dark");}
-function saveScroll(){localStorage.setItem("chatScroll",document.getElementById("chat").scrollTop);}document.getElementById("chat").addEventListener("scroll",saveScroll);
+function saveScroll(){localStorage.setItem("chatScroll_"+roomId,document.getElementById("chat").scrollTop);}document.getElementById("chat").addEventListener("scroll",saveScroll);
 </script>
 </body>
 </html>
