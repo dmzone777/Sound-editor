@@ -6,36 +6,9 @@
 <title>Sharko Private Chat</title>
 
 <style>
-body{
-margin:0;
-font-family:'Segoe UI',sans-serif;
-background:linear-gradient(135deg,#ece5dd,#d6dbd7);
-display:flex;
-flex-direction:column;
-height:100vh;
-transition:.3s;
-}
-header{
-background:linear-gradient(135deg,#075e54,#128c7e);
-color:white;
-padding:15px;
-text-align:center;
-font-size:18px;
-font-weight:bold;
-position:relative;
-box-shadow:0 4px 12px rgba(0,0,0,.2);
-}
-.toggle-dark{
-position:absolute;
-right:15px;
-top:12px;
-background:rgba(255,255,255,.2);
-border:none;
-padding:6px 10px;
-border-radius:8px;
-color:white;
-cursor:pointer;
-}
+body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#ece5dd,#d6dbd7);display:flex;flex-direction:column;height:100vh;transition:.3s;}
+header{background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:15px;text-align:center;font-size:18px;font-weight:bold;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.toggle-dark{position:absolute;right:15px;top:12px;background:rgba(255,255,255,.2);border:none;padding:6px 10px;border-radius:8px;color:white;cursor:pointer;}
 .setup-box{padding:20px;display:flex;flex-direction:column;gap:12px;}
 .input-group input{padding:12px;border-radius:10px;border:1px solid #ccc;outline:none;}
 .start-btn{padding:12px;background:linear-gradient(135deg,#25d366,#128c7e);border:none;color:white;font-weight:bold;border-radius:10px;cursor:pointer;}
@@ -110,21 +83,19 @@ document.getElementById("chatContainer").style.display="flex";
 db.collection("privateChats").doc(roomId).collection("messages").orderBy("time")
 .onSnapshot(snapshot=>{
 const chat=document.getElementById("chat");
-
 snapshot.docChanges().forEach(change=>{
 if(change.type==="added"){
 let d=change.doc.data();
 let div=document.createElement("div");
 div.className="msg"+(d.name===myName?" me":"");
+div.id="msg_"+change.doc.id;
 
 let date=new Date(d.time);
 let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
 
 div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}">`:""}<div class="time">${time}${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}</div>${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${change.doc.id}')">Delete</button>`:""}<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>`;
-
 chat.appendChild(div);
 chat.scrollTop=chat.scrollHeight;
-
 if(d.name!==myName&&!d.seen)change.doc.ref.update({seen:true});
 }
 });
@@ -174,8 +145,18 @@ img.src=ev.target.result;
 reader.readAsDataURL(file);
 });
 
-function deleteMsg(id){db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();}
-function copyMsg(text){navigator.clipboard.writeText(text);}
+function deleteMsg(id){
+const el=document.getElementById("msg_"+id);
+if(el) el.remove();
+db.collection("privateChats").doc(roomId).collection("messages").doc(id).delete();
+}
+
+function copyMsg(text){
+if(!text) return;
+navigator.clipboard.writeText(text);
+alert("Copied ✅");
+}
+
 function toggleDark(){document.body.classList.toggle("dark");}
 </script>
 </body>
