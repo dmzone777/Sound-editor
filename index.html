@@ -25,6 +25,13 @@ font-weight:bold;
 position:relative;
 box-shadow:0 4px 12px rgba(0,0,0,.2);
 }
+.onlineStatus{
+position:absolute;
+left:15px;
+bottom:4px;
+font-size:11px;
+opacity:.9;
+}
 .toggle-dark{
 position:absolute;
 right:15px;
@@ -69,6 +76,7 @@ cursor:pointer;
 
 <header>
 Sharko's Web Chat
+<div id="onlineStatus" class="onlineStatus"></div>
 <button class="toggle-dark" onclick="toggleDark()">🌙</button>
 </header>
 
@@ -101,11 +109,21 @@ const db=firebase.firestore();
 firebase.auth().signInAnonymously();
 
 let roomId="",myName="",typingTimer=null;
+let activityTimer=null;
+let userScrolling=false;
+const chatBox=document.getElementById("chat");
+
+chatBox.addEventListener("scroll",()=>{
+const nearBottom=chatBox.scrollHeight-chatBox.scrollTop-chatBox.clientHeight<120;
+userScrolling=!nearBottom;
+});
 
 function smartScroll(){
-const chat=document.getElementById("chat");
-const nearBottom=chat.scrollHeight-chat.scrollTop-chat.clientHeight<120;
-if(nearBottom){setTimeout(()=>{chat.scrollTop=chat.scrollHeight;},50);}
+if(!userScrolling){
+requestAnimationFrame(()=>{
+chatBox.scrollTo({top:chatBox.scrollHeight,behavior:"smooth"});
+});
+}
 }
 
 function startChat(){
@@ -117,6 +135,12 @@ roomId=[myName,friend].sort().join("_");
 document.querySelector(".setup-box").style.display="none";
 document.getElementById("chatContainer").style.display="flex";
 
+setOnline(true);
+["click","keydown","mousemove","touchstart"].forEach(evt=>{
+document.addEventListener(evt,()=>activity());
+});
+activityTimer=setInterval(()=>{setOnline(false);},5000);
+
 db.collection("privateChats").doc(roomId).collection("messages").orderBy("time")
 .onSnapshot(snapshot=>{
 const chat=document.getElementById("chat");
@@ -125,20 +149,13 @@ if(change.type==="added"){
 let d=change.doc.data();
 let div=document.createElement("div");
 div.className="msg"+(d.name===myName?" me":"");
-
 let date=new Date(d.time);
 let time=date.getHours()+":"+String(date.getMinutes()).padStart(2,'0');
-
-div.innerHTML=`
-<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}" onclick="openImg('${d.image}')">`:""}
+div.innerHTML=`<b>${d.name}</b><br>${d.text||""}${d.image?`<br><img src="${d.image}" onclick="openImg('${d.image}')">`:""}
 <div class="time" onclick="toggleActions(this)">${time}${d.name===myName?(d.seen?" ✓✓ Seen":" ✓ Sent"):""}</div>
-<div class="actions">
-${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${change.doc.id}')">Delete</button>`:""}
-<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button>
-</div>
-${d.reaction?`<div class="react">${d.reaction}</div>`:`<div class="react" onclick="react('${change.doc.id}','👍')">👍</div>`}
-`;
-
+<div class="actions">${d.name===myName?`<button class="delete-btn" onclick="deleteMsg('${change.doc.id}')">Delete</button>`:""}
+<button class="copy-btn" onclick="copyMsg('${d.text||''}')">Copy</button></div>
+${d.reaction?`<div class="react">${d.reaction}</div>`:`<div class="react" onclick="react('${change.doc.id}','👍')">👍</div>`}`;
 chat.appendChild(div);
 smartScroll();
 if(d.name!==myName&&!d.seen)change.doc.ref.update({seen:true});
@@ -149,9 +166,32 @@ if(d.name!==myName&&!d.seen)change.doc.ref.update({seen:true});
 db.collection("privateChats").doc(roomId).onSnapshot(doc=>{
 if(doc.exists){
 let data=doc.data();
+let friendKey=Object.keys(data).find(k=>k!==myName&&data[k]?.online!==undefined);
+if(friendKey){
+let st=data[friendKey];
+let el=document.getElementById("onlineStatus");
+if(st.online){el.innerText=friendKey+" ● online";}
+else{
+let t=new Date(st.lastSeen||Date.now());
+let time=t.getHours()+":"+String(t.getMinutes()).padStart(2,'0');
+el.innerText=friendKey+" last seen "+time;
+}
+}
 document.getElementById("typingStatus").innerText=(data.typing&&data.typing!==myName)?data.typing+" is typing...":"";
 }
 });
+}
+
+function setOnline(state){
+db.collection("privateChats").doc(roomId).set({
+[myName]:{online:state,lastSeen:Date.now()}
+},{merge:true});
+}
+
+function activity(){
+clearInterval(activityTimer);
+setOnline(true);
+activityTimer=setInterval(()=>{setOnline(false);},5000);
 }
 
 function send(){
@@ -163,7 +203,6 @@ input.value="";
 }
 
 document.getElementById("msg").addEventListener("keydown",e=>{if(e.key==="Enter")send();});
-
 document.getElementById("msg").addEventListener("input",function(){
 clearTimeout(typingTimer);
 db.collection("privateChats").doc(roomId).set({typing:myName},{merge:true});
